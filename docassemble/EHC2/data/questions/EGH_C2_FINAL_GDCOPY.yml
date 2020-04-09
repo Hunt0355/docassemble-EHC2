@@ -1,0 +1,210 @@
+---
+objects:
+  - endpoint: DADict
+---
+# This is our welcome screen.  We can choose to exit here
+# if we don't wish to accept the disclaimer
+mandatory: True
+question: Welcome,
+subquestion: |
+  This is an application which facillitates the creation of South Australian Supreme Court documents.
+
+  ***Disclaimer:***  
+  
+  **  This is an automated court document. This form is not to be taken as as genuine legal advice, and should be checked by a lawyer prior to submission.**
+
+  If you continue you accept these terms.
+  
+  If you do not accept these terms, you will be directed to the Supreme Court homepage. 
+buttons:
+  - "I accept and want to continue": continue
+  - "I do not accept": exit
+    url: http://www.courts.sa.gov.au
+---
+# This code block drives the interview.  It determines whether the initial
+# eligibility requirements have been met and if they are directs the
+# user to the 'eligible' endpoint.  Otherwise, it directs the user to the
+# 'ineligible' endpoint.  Each endpoint displays an exit screen
+# For the purposes of this exercise, a user is eligible to continue if they
+# are wishing to submit a form for the SASC.
+# Note: This code block must be mandatory
+mandatory: True
+code: |
+  if rel_court == 'yes_SC_form':
+    endpoint['eligible']
+  else:
+    endpoint['ineligible']
+---
+# This question block asks the questions to drive the code block above.
+question: Court
+subquestion: |
+  **For which court does this form need filing?**
+fields:
+ - Relevant Court: rel_court 
+   choices:
+   - Magistrates Court: not_SC
+   - District Court: not_SC
+   - Supreme Court: yes_SC_form
+   - Federal Circuit Court: not_SC
+   - Federal court: not_SC
+back button: True
+---
+# This is the ineligible endpoint
+event: endpoint['ineligible']
+question: Eligibility requirements not met
+subquestion: |
+  *It appears you do not meet our eligibility requirements.* 
+  
+  This application can only be used to complete a Supreme Court of South Australia Form. 
+  
+  You cannot use this service.
+ 
+  **Please see the following links for other court assistance:**
+
+  For the Magistrates Court, click [here](http://www.courts.sa.gov.au/OurCourts/MagistratesCourt/Pages/default.aspx).
+  
+  
+  For the District Court, click [here](http://www.courts.sa.gov.au/OurCourts/DistrictCourt/Pages/default.aspx).
+  
+  
+  For the Federal Circuit Court, click [here](http://www.federalcircuitcourt.gov.au/wps/wcm/connect/fccweb/home).
+  
+  
+  For the Federal Court, click [here](https://www.fedcourt.gov.au).
+buttons:
+  - Exit: exit
+  - Restart: restart
+---
+# This is the eligible endpoint.
+# Generated Supreme Court Form
+event: endpoint['eligible']
+question: Here is your Supreme Court document.
+subquestion: |
+  #### Hello ${ EGHfirstname +' '+ EGHlastname }, 
+  
+  Provided below is your personalised Supreme Court Document. 
+
+  
+  Category|Personal Details
+  --------|-------
+  Your Name          | ${ EGHfirstname +' '+ EGHmiddlename +' '+ EGHlastname }
+  Your Role          | ${ Position1 }
+  Other Party        | ${ Dfirstname +' '+ Dmiddlename +'  '+ Dlastname }
+  Role of Other Party| ${ Position2 }
+  Document Type      | ${ Doctype }
+  %if has_solicitor == 'Yes':
+  Acting Solicitor   | ${ solicitor_name }
+  %endif
+  Address            | ${ P_address }
+  Telephone          | ${ P_telephone }
+  Mobile             | ${ P_mobile }
+  Facsimile          | ${ P_facsimile }
+  Email              | ${ P_email }
+  L Code             | ${ P_l_code }
+  P Code             | ${ P_p_code } 
+  Date               | ${ format_datetime(today(), format='d MMMM yyyy hh:mm z') }
+  Settled by:        | 'Ella Hunter' 
+  
+attachment:
+  docx template file: SCD_C2.docx
+  valid formats:
+    - pdf
+buttons:
+ - Finish: exit
+   url: http://www.courts.sa.gov.au/OurCourts/SupremeCourt/Pages/default.aspx
+ - Edit form: restart
+---
+question: Generating a Supreme Court Document
+subquestion: |
+  **Name**
+  
+  Please state your full name, including any middle name(s). 
+fields:
+ - First Name: EGHfirstname 
+ - Middle Name(s): EGHmiddlename
+   required: False
+ - Last Name: EGHlastname
+---
+question: Role of party
+subquestion: |
+  What is your position in this legal matter?
+fields: 
+ - I am the: Position1
+   choices: 
+   - Plaintiff
+   - Appellant
+   - Applicant
+   - Defendant
+   - Respondant
+back button: True
+--- 
+question: Document Style
+subquestion: |
+  Choose a document type
+fields: 
+  - I wish to create a: Doctype
+    choices:
+    - Summons
+    - Third Party Notice
+    - Notice of Appeal
+back button: True
+---
+question: Position of the other party
+subquestion: |
+  Please state the full name and role of the other party
+fields:
+ - First Name: Dfirstname
+ - Middle Name(s): Dmiddlename
+   required: False
+ - Last Name: Dlastname
+ - The other party is the: Position2
+   choices: 
+   - Plaintiff
+   - Appellant
+   - Applicant
+   - Defendant
+   - Respondant
+back button: True
+---
+question: Legal Representation
+subquestion: |
+  *If you are unsure, see help button above.*
+fields:
+  - Do you currently have a solicitor acting on your behalf?: has_solicitor
+    datatype: radio
+    choices:
+      - Yes
+      - No
+  - Please state the full name of your solicitor: solicitor_name
+    show if: 
+      variable: has_solicitor
+      is: 'Yes'
+help: |
+ "Solicitor" means an Australian legal practitioner with an Australian practising certificate, who works alongside you in your legal matters to provide legal advice and representation.
+back button: True
+---
+question: |
+  Please fill in requisite information
+fields:
+   - Address: P_address
+   - Telephone: P_telephone
+     required: False
+   - Mobile: P_mobile
+     required: False
+   - Facsimile: P_facsimile
+     required: False
+   - Email: P_email
+     required: False
+   - L Code: P_l_code
+     help: |
+       Ask Mark
+     required: False
+   - P Code: P_p_code
+     help: |
+       Ask Mark
+     required: False
+back button: True
+---
+code: |
+  settled_by = 'Ella Hunter'
+---
